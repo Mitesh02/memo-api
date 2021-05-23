@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ftp="http://www.mulesoft.org/schema/mule/ftp" xmlns:customer-system-api="http://www.mulesoft.org/schema/mule/customer-system-api"
+	xmlns:complaints-system-api="http://www.mulesoft.org/schema/mule/complaints-system-api"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/complaints-system-api http://www.mulesoft.org/schema/mule/complaints-system-api/current/mule-complaints-system-api.xsd
+http://www.mulesoft.org/schema/mule/customer-system-api http://www.mulesoft.org/schema/mule/customer-system-api/current/mule-customer-system-api.xsd
+http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd">
+
+	<complaints-system-api:config name="Complaints_system_api_Config" doc:name="Complaints-system-api Config" doc:id="4d41576e-b026-476f-b366-37976f4a26ec" property_host="grp1-complaint.us-e2.cloudhub.io" property_port="80" property_protocol="HTTP" />
+	<customer-system-api:config name="Customer_System_API_Config" doc:name="Customer-System-API Config" doc:id="687e7fca-2039-473b-ab1f-98580651bb4f" property_host="grp1-customer.us-e2.cloudhub.io" property_port="80" property_protocol="HTTP" />
+	<flow name="implementationFlow" doc:id="b916e9bf-dd90-4dc3-825e-216a3b1e937e" >
+		<http:listener doc:name="Listener" doc:id="4140791e-1897-4ef4-9caf-306b65b821f3" config-ref="HTTP_Listener_config" path="/memo/{CID}"/>
+		<complaints-system-api:get-complaint-by-complaint-id doc:name="GET Complaint by Complaint-ID." doc:id="b13ad8d9-df0f-47f6-8ed5-cc6ebe7a75e9" complaint-id="#[attributes.uriParams.CID]" config-ref="Complaints_system_api_Config"/>
+		<ee:transform doc:name="Transform Message" doc:id="8eed046f-51c9-472a-b35c-2732144579de" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="Complaints" ><![CDATA[payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<customer-system-api:get-a-customer-detail-by-id doc:name="Get a Customer Detail By ID" doc:id="89e43af6-51b7-4cc7-80c1-6c49eba1c1bb" config-ref="Customer_System_API_Config" cid="#[payload.customerNumber]"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="af6a9deb-9b90-4087-9ed6-67d5e2c9cad5" >
+			<route >
+				<ee:transform doc:name="Transform Message" doc:id="4a6a8917-fcb5-43fa-81a3-0a2bcbc42feb" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"type": "SMS",
+	"subject": "Complaint Notification",
+	"message": "Dear Customer," ++ "Your Complaint with Complaint ID: " ++ vars.Complaints.complaintID ++ " is Resolved." ++ "ThankYou for reaching out to us.",
+	"recipient": payload.phone
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<http:request method="POST" doc:name="Request for SMS" doc:id="ed218c21-3aa6-436e-84df-aefe39f66c4c" url="http://proj-notifications-process-api.us-e2.cloudhub.io/api/notifications"/>
+			</route>
+			<route >
+				<ee:transform doc:name="Transform Message" doc:id="5c43c5f4-ebf1-4afa-9c76-e400101dbb92" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="Customer" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+						<ee:set-variable variableName="email" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"type": "EMAIL",
+	"subject": "Complaint Status",
+	"message": "Dear Customer, " ++ payload.customerName ++ ". Sorry for the inconvenience caused. " ++ "The Complaint raised by you with the ComplaintID: " ++ vars.Complaints.complaintID ++ " is resolved. " ++ "ThankYou for your Patience. CUSTOMER CARE.",
+	"recipient": payload.email
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<ee:transform doc:name="Complaint Memo" doc:id="2c24ba12-692b-480c-89e5-439d3e732e5b">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output text/plain
+---
+"TO: " ++ vars.Customer.customerName as String ++ "\n" ++ 
+"FROM: " ++ "CUSTOMER CARE" ++ "\n" ++ 
+"DATE: " ++ now() as Date ++ "\n" ++ 
+"SUBJECT: " ++ "Complaint Memo" ++ "\n" ++ 
+"\n" ++
+"\n" ++
+"Dear Customer, " ++ vars.Customer.customerName as String ++ "\n" ++
+"CustomerNumber: " ++ vars.Complaints.customerNumber as Number ++ "\n" ++
+"\n" ++
+"The Details regarding your Complaint are: " ++ "\n" ++
+"\n" ++
+"ComplaintID: " ++ vars.Complaints.complaintID as Number ++ "\n" ++
+"ComplaintStatus: " ++ vars.Complaints.complaintStatus as String ++ "\n" ++
+"ComplaintDate: " ++ vars.Complaints.complaintDate as String ++ "\n" ++
+"OrderID: " ++ vars.Complaints.orderID as Number ++ "\n" ++ 
+"OrderDate: " ++ vars.Complaints.orderDate[0 to 9] as String ++ "\n" ++
+"ProductID: " ++ vars.Complaints.productID as String ++ 
+"\n" ++
+"\n" ++
+"Complaint is Resolved." ++ "\n" ++ 
+"\n" ++
+"ThankYou." ++ "\n" ++ 
+"\n" ++
+"Shop With us Again."]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<ftp:write doc:name="Write" doc:id="b7bd36a4-2a11-48cb-96fe-0ef62e0985bb" config-ref="FTP_Config" path='#[vars.Complaints.complaintID ++ ".txt"]'/>
+				<http:request method="POST" doc:name="Request for EMAIL" doc:id="76d96ed5-4e52-4d14-b779-53226bbc2107" url="http://proj-notifications-process-api.us-e2.cloudhub.io/api/notifications">
+					<http:body ><![CDATA[#[vars.email]]]></http:body>
+					<http:headers ><![CDATA[#[output application/java
+---
+{
+	"complaintID" : vars.Complaints.complaintID
+}]]]></http:headers>
+				</http:request>
+			</route>
+		</scatter-gather>
+		<ee:transform doc:name="Transform Message" doc:id="2827b9d9-a395-4367-830e-ae269ce2eb94" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "Memo sent Successfully."
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

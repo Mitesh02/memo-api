@@ -1,0 +1,18 @@
+{
+  "sampleData": {
+    "8bf371e3-2228-4fe4-ad2f-f1f5ff4a097f": {
+      "vars-Complaints": "sample_data/json.json",
+      "vars-Customer": "sample_data/json_1.json"
+    },
+    "353264f3-832b-44c2-b2d9-d1816d7e077d": {
+      "payload": "sample_data/json_2.json"
+    },
+    "b294bd68-976a-4678-b728-1875a59604ce": {
+      "payload": "sample_data/json_3.json"
+    },
+    "2c24ba12-692b-480c-89e5-439d3e732e5b": {
+      "vars-Complaints": "sample_data/json_4.json",
+      "vars-Customer": "sample_data/json_5.json"
+    }
+  }
+}

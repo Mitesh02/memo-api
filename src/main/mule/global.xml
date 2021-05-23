@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ftp="http://www.mulesoft.org/schema/mule/ftp"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	
+	
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="7847440f-69c9-4b72-a3c7-ad2a7b7e2312" >
+		<http:listener-connection host="${http.host}" port="${http.port}" />
+	</http:listener-config>
+	
+	<ftp:config name="FTP_Config" doc:name="FTP Config" doc:id="2501d306-2d69-43a6-8631-f9390284a114" >
+		<ftp:connection workingDir="${write.dir}" host="${write.host}" username="${write.user}" password="${write.password}" port="${write.port}"/>
+	</ftp:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="d219117d-cd25-4b02-b302-30421032a455" file="Memo-dev.properties" />
+	<configuration doc:name="Configuration" doc:id="e8fe87e9-3637-4528-948e-3ad8b9c2e4b9" defaultErrorHandler-ref="globalError_Handler" />
+	<error-handler name="globalError_Handler" doc:id="af503cf3-2121-46e7-9a70-36714b6489cd" >
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="f140278c-23ba-4265-8c64-cf04ca4b6d4f" type="COMPLAINTS-SYSTEM-API:BAD_REQUEST, COMPLAINTS-SYSTEM-API:CONNECTIVITY, COMPLAINTS-SYSTEM-API:INTERNAL_SERVER_ERROR, COMPLAINTS-SYSTEM-API:NOT_FOUND, COMPLAINTS-SYSTEM-API:SERVICE_UNAVAILABLE">
+			<set-payload value='#["Error with Complaints System API. Details: " ++ error.description]' doc:name="Error Payload" doc:id="3fd3bb72-49d7-4a29-b6e3-4765741a6cf2" />
+			<set-variable value="500" doc:name="httpStatus" doc:id="b5ca8e4d-2637-4227-aa25-4f232175016f" variableName="httpStatus"/>
+		</on-error-continue>
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="51042b31-7936-46be-9048-18cddeb95e96" type="CUSTOMER-SYSTEM-API:BAD_REQUEST, CUSTOMER-SYSTEM-API:CONNECTIVITY, CUSTOMER-SYSTEM-API:INTERNAL_SERVER_ERROR, CUSTOMER-SYSTEM-API:NOT_FOUND, CUSTOMER-SYSTEM-API:SERVICE_UNAVAILABLE">
+			<set-payload value='#["Error with Customer System API. Details: " ++ error.description]' doc:name="Error Payload" doc:id="9f42915b-c684-4f7b-a6ee-b3e0b69c987e" />
+			<set-variable value="500" doc:name="httpStatus" doc:id="149ef00b-97e3-4c38-a33b-25470eb09b1a" variableName="httpStatus"/>
+		</on-error-continue>
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="b8cdfedc-124f-479e-89f8-3ecd95b7b2ba" type="FTP:CONNECTIVITY, FTP:FILE_ALREADY_EXISTS, FTP:RETRY_EXHAUSTED">
+			<set-payload value='#["Error with FTP. Details: " ++ error.detailedDescription]' doc:name="Error Payload" doc:id="33b52a34-8c51-4a7e-99f7-b403b2eab68f" />
+			<set-variable value="500" doc:name="httpStatus" doc:id="befde2c6-a757-4f2c-b72b-b8ac27c55c56" variableName="httpStatus"/>
+		</on-error-continue>
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="95c3e6b7-e3fb-467c-94c9-2ba4a586a791" type="ANY">
+			<set-payload value='#["Error occured. Details: " ++ error.description]' doc:name="Error Payload" doc:id="21760e88-e5b3-46d5-a26a-ab4eeedb260a" />
+			<set-variable value="500" doc:name="httpStatus" doc:id="fd06c83f-9afb-467d-843c-7e64921236db" variableName="httpStatus"/>
+		</on-error-continue>
+	</error-handler>
+	
+</mule>

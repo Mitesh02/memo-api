@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="implementation-test-suite.xml" />
+	<munit:test name="implementation-test-suite-implementationFlowTest" doc:id="11be0ace-4cdc-4571-8797-75d3851c35f3" description="Test">
+		<munit:execution >
+			<munit:set-null-payload doc:name="Set null payload" doc:id="df1d1255-40a8-4df7-90a1-d27ea188051a" />
+			<munit:set-event doc:name="Set Event" doc:id="a496cd96-3d73-44c5-bba2-db729f9cca2f" >
+				<munit:attributes value='#[uriParams:{"CID": 100001}]' />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to implementationFlow" doc:id="6403b4dd-f22e-467d-bed0-45a728a94123" name="implementationFlow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-equals doc:name="Assert equals" doc:id="1adbbac1-afd7-464e-819f-167b0a2b2181" actual="#[payload]" expected='#[{&#10;	"message": "Memo sent Successfully."&#10;}]'/>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>
